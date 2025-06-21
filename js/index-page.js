@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 隐藏弹窗
             disclaimerModal.style.display = 'none';
         });
+        resetToHome();
     }
 
     // URL搜索参数处理脚本
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     window.history.replaceState(
                         { search: keyword }, 
-                        `搜索: ${keyword} - LibreTV`, 
+                        `搜索: ${keyword} - kkskTV`, 
                         window.location.href
                     );
                 } catch (e) {
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 window.history.replaceState(
                     { search: searchQuery }, 
-                    `搜索: ${searchQuery} - LibreTV`, 
+                    `搜索: ${searchQuery} - kkskTV`, 
                     `/s=${encodeURIComponent(searchQuery)}`
                 );
             } catch (e) {
