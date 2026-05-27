@@ -1,9 +1,7 @@
-// /api/douban-img.js - 专门用于代理豆瓣图片的 Serverless Function
-
-import fetch from 'node-fetch';
+// /api/douban-img.js
 
 export default async function handler(req, res) {
-    // 1. 设置 CORS 头，允许前端跨域访问
+    // 1. 设置允许跨域
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     
@@ -11,19 +9,17 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    // 2. 获取前端传递过来的原图 URL 参数
     const { url } = req.query;
 
     if (!url) {
-        return res.status(400).json({ error: 'Missing "url" query parameter' });
+        return res.status(400).json({ error: '缺少图片 URL 参数' });
     }
 
     try {
-        // 3. 发起请求，核心：必须伪装 Referer 和 User-Agent！
+        // 2. 使用原生 fetch 请求豆瓣图片，伪装身份
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                // 这是破解豆瓣 418 防盗链的最关键所在
                 'Referer': 'https://movie.douban.com/', 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
@@ -31,26 +27,24 @@ export default async function handler(req, res) {
         });
 
         if (!response.ok) {
-            console.error(`Douban Image Proxy Error: ${response.status} for ${url}`);
-            // 如果豆瓣依然拒绝，返回 404 让前端走 onerror 兜底逻辑
-            return res.status(response.status).end();
+            console.error(`豆瓣拒绝了请求: ${response.status} - ${url}`);
+            return res.status(response.status).json({ error: '豆瓣防盗链拦截' });
         }
 
-        // 4. 获取图片的 Content-Type 并设置到响应头中
-        const contentType = response.headers.get('content-type');
-        if (contentType) {
-            res.setHeader('Content-Type', contentType);
-        }
+        // 3. 将图片流转换为安全的 Buffer 数据（Vercel 极其喜欢这种方式）
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 4. 获取实际的图片类型（比如 image/jpeg, image/webp）
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
         
-        // 5. 设置强缓存策略，减轻 Vercel 函数调用压力和豆瓣请求压力（缓存30天）
+        // 5. 设置响应头并输出图片
+        res.setHeader('Content-Type', contentType);
         res.setHeader('Cache-Control', 'public, max-age=2592000, s-maxage=2592000, stale-while-revalidate=86400');
-
-        // 6. 将图片数据流直接管道化返回给前端
-        // 将 node-fetch 的 response.body 转换为 Node.js Readable stream 并通过 res 发送
-        return response.body.pipe(res);
+        res.status(200).send(buffer);
 
     } catch (error) {
-        console.error('Fetch image error:', error);
-        return res.status(500).json({ error: 'Failed to fetch image' });
+        console.error('获取图片时发生严重错误:', error);
+        res.status(500).json({ error: error.message || '服务器内部错误' });
     }
 }
