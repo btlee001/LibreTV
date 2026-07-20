@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import doubanImageHandler from './api/douban-img.js';
 
 dotenv.config();
 
@@ -97,6 +98,10 @@ app.get('/s=:keyword', async (req, res) => {
     res.status(500).send('读取静态页面失败');
   }
 });
+
+// 与 Vercel 的 /api/douban-img 保持一致，让本地、Docker 和普通 Node 部署
+// 也能代理豆瓣海报，避免浏览器直接请求时被防盗链策略拦截。
+app.get('/api/douban-img', doubanImageHandler);
 
 function isValidUrl(urlString) {
   try {

@@ -523,28 +523,23 @@ function renderDoubanCards(data, container) {
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
             
-            // 处理图片URL
-            // 1. 直接使用豆瓣图片URL (添加no-referrer属性)
-            const originalCoverUrl = item.cover;
-            
-            // 2. 也准备代理URL作为备选
-            //const proxiedCoverUrl = PROXY_URL + encodeURIComponent(originalCoverUrl);
-            //const proxiedCoverUrl = `/api/douban-img?url=${encodeURIComponent(item.cover)}`;
-// 1. 原始图片地址
-            //const originalCoverUrl = item.cover;
-            
-            // 2. 使用你自己刚刚搭建的 Vercel 后端代理！
-            const proxiedCoverUrl = `/api/douban-img?url=${encodeURIComponent(originalCoverUrl)}`;
-            
-            // 3. 兜底占位图（以防万一）
-            const fallbackImg = `https://via.placeholder.com/300x450/333333/cccccc?text=${encodeURIComponent('图片加载失败')}`;
+            // 优先走同源图片代理；代理不可用时由 handleDoubanCoverError
+            // 尝试 no-referrer 直连，最后回退到项目内置占位图。
+            const originalCoverUrl = typeof item.cover === 'string' ? item.cover : '';
+            const encodedOriginalCoverUrl = encodeURIComponent(originalCoverUrl);
+            const proxiedCoverUrl = originalCoverUrl
+                ? `/api/douban-img?url=${encodedOriginalCoverUrl}`
+                : 'image/nomedia.png';
             
             // 为不同设备优化卡片布局
             card.innerHTML = `
                 <div class="relative w-full aspect-[2/3] overflow-hidden cursor-pointer" onclick="fillAndSearchWithDouban('${safeTitle}')">
                     <img src="${proxiedCoverUrl}" alt="${safeTitle}" 
                         class="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                        onerror="this.onerror=null; this.src='${fallbackImg}'; this.classList.add('object-contain');"
+                        data-original-cover="${encodedOriginalCoverUrl}"
+                        data-fallback-stage="proxy"
+                        referrerpolicy="no-referrer"
+                        onerror="handleDoubanCoverError(this)"
                         loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
                     <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-sm">
@@ -572,6 +567,23 @@ function renderDoubanCards(data, container) {
     // 清空并添加所有新元素
     container.innerHTML = "";
     container.appendChild(fragment);
+}
+
+// 海报加载兜底：专用代理 -> no-referrer 直连 -> 本地占位图。
+function handleDoubanCoverError(imageElement) {
+    const stage = imageElement.dataset.fallbackStage;
+    const encodedOriginalUrl = imageElement.dataset.originalCover || '';
+
+    if (stage === 'proxy' && encodedOriginalUrl) {
+        imageElement.dataset.fallbackStage = 'direct';
+        imageElement.src = decodeURIComponent(encodedOriginalUrl);
+        return;
+    }
+
+    imageElement.dataset.fallbackStage = 'placeholder';
+    imageElement.onerror = null;
+    imageElement.src = 'image/nomedia.png';
+    imageElement.classList.add('object-contain');
 }
 
 // 重置到首页
