@@ -1,12 +1,36 @@
 // 豆瓣热门电影电视剧推荐功能
 
 // 豆瓣标签列表 - 修改为默认标签
-let defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
-let defaultTvTags = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
+let defaultMovieTags = ['热门', '最新', '豆瓣高分', '华语', '日本', '欧美', '韩国', '动作', '喜剧', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+let defaultTvTags = ['热门', '日剧', '美剧', '英剧', '韩剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
 
 // 用户标签列表 - 存储用户实际使用的标签（包含保留的系统标签和用户添加的自定义标签）
 let movieTags = [];
 let tvTags = [];
+
+function normalizeSavedTags(savedTags, fallbackTags) {
+    if (!Array.isArray(savedTags)) return [...fallbackTags];
+    return [...new Set(savedTags.filter(tag => typeof tag === 'string' && tag.trim()))];
+}
+
+function moveTagAfter(tags, tagToMove, anchorTag) {
+    const reorderedTags = tags.filter(tag => tag !== tagToMove);
+    const anchorIndex = reorderedTags.indexOf(anchorTag);
+
+    if (!tags.includes(tagToMove)) return reorderedTags;
+    reorderedTags.splice(anchorIndex >= 0 ? anchorIndex + 1 : 0, 0, tagToMove);
+    return reorderedTags;
+}
+
+// 迁移浏览器中已经保存的旧标签配置，避免默认标签修改后仍显示旧顺序。
+function migrateMovieTags(tags) {
+    const filteredTags = tags.filter(tag => tag !== '冷门佳片' && tag !== '经典');
+    return moveTagAfter(filteredTags, '日本', '华语');
+}
+
+function migrateTvTags(tags) {
+    return moveTagAfter(tags, '日剧', '热门');
+}
 
 // 加载用户标签
 function loadUserTags() {
@@ -17,18 +41,21 @@ function loadUserTags() {
         
         // 如果本地存储中有标签数据，则使用它
         if (savedMovieTags) {
-            movieTags = JSON.parse(savedMovieTags);
+            movieTags = migrateMovieTags(normalizeSavedTags(JSON.parse(savedMovieTags), defaultMovieTags));
         } else {
             // 否则使用默认标签
             movieTags = [...defaultMovieTags];
         }
         
         if (savedTvTags) {
-            tvTags = JSON.parse(savedTvTags);
+            tvTags = migrateTvTags(normalizeSavedTags(JSON.parse(savedTvTags), defaultTvTags));
         } else {
             // 否则使用默认标签
             tvTags = [...defaultTvTags];
         }
+
+        // 将迁移后的结果写回本地，后续加载直接使用新配置。
+        saveUserTags();
     } catch (e) {
         console.error('加载标签失败：', e);
         // 初始化为默认值，防止错误
@@ -51,7 +78,11 @@ function saveUserTags() {
 let doubanMovieTvCurrentSwitch = 'movie';
 let doubanCurrentTag = '热门';
 let doubanPageStart = 0;
+let doubanSelectedYear = 2026;
+let doubanRequestSequence = 0;
 const doubanPageSize = 16; // 一次显示的项目数量
+const DOUBAN_YEAR_MAX = 2026;
+const DOUBAN_YEAR_MIN = 2020;
 
 // 初始化豆瓣功能
 function initDouban() {
@@ -103,8 +134,8 @@ function initDouban() {
     // 渲染豆瓣标签
     renderDoubanTags();
     
-    // 换一批按钮事件监听
-    setupDoubanRefreshBtn();
+    // 初始化年份下拉框
+    setupDoubanYearSelect();
     
     // 初始加载热门内容
     if (localStorage.getItem('doubanEnabled') === 'true') {
@@ -278,9 +309,6 @@ function renderDoubanMovieTvSwitch() {
             // 重新加载豆瓣内容
             renderDoubanTags(movieTags);
 
-            // 换一批按钮事件监听
-            setupDoubanRefreshBtn();
-            
             // 初始加载热门内容
             if (localStorage.getItem('doubanEnabled') === 'true') {
                 renderRecommend(doubanCurrentTag, doubanPageSize, doubanPageStart);
@@ -304,9 +332,6 @@ function renderDoubanMovieTvSwitch() {
             // 重新加载豆瓣内容
             renderDoubanTags(tvTags);
 
-            // 换一批按钮事件监听
-            setupDoubanRefreshBtn();
-            
             // 初始加载热门内容
             if (localStorage.getItem('doubanEnabled') === 'true') {
                 renderRecommend(doubanCurrentTag, doubanPageSize, doubanPageStart);
@@ -353,7 +378,14 @@ function renderDoubanTags(tags) {
         btn.textContent = tag;
         
         btn.onclick = function() {
-            if (doubanCurrentTag !== tag) {
+            const shouldResetToLatestYear = tag === '最新' && doubanSelectedYear !== DOUBAN_YEAR_MAX;
+            if (tag === '最新') {
+                doubanSelectedYear = DOUBAN_YEAR_MAX;
+                const yearSelect = document.getElementById('douban-year-select');
+                if (yearSelect) yearSelect.value = String(DOUBAN_YEAR_MAX);
+            }
+
+            if (doubanCurrentTag !== tag || shouldResetToLatestYear) {
                 doubanCurrentTag = tag;
                 doubanPageStart = 0;
                 renderRecommend(doubanCurrentTag, doubanPageSize, doubanPageStart);
@@ -365,18 +397,29 @@ function renderDoubanTags(tags) {
     });
 }
 
-// 设置换一批按钮事件
-function setupDoubanRefreshBtn() {
-    // 修复ID，使用正确的ID douban-refresh 而不是 douban-refresh-btn
-    const btn = document.getElementById('douban-refresh');
-    if (!btn) return;
-    
-    btn.onclick = function() {
-        doubanPageStart += doubanPageSize;
-        if (doubanPageStart > 9 * doubanPageSize) {
-            doubanPageStart = 0;
+// 初始化年份筛选。HTML 中保留静态选项，确保脚本初始化前下拉框也能正常显示。
+function setupDoubanYearSelect() {
+    const yearSelect = document.getElementById('douban-year-select');
+    if (!yearSelect) return;
+
+    // 重新校准选项，保证范围始终为 2026 至 2020。
+    yearSelect.innerHTML = '';
+    for (let year = DOUBAN_YEAR_MAX; year >= DOUBAN_YEAR_MIN; year--) {
+        const option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = `${year}年`;
+        option.selected = year === doubanSelectedYear;
+        yearSelect.appendChild(option);
+    }
+
+    yearSelect.onchange = function(event) {
+        const selectedYear = Number(event.target.value);
+        if (!Number.isInteger(selectedYear) || selectedYear < DOUBAN_YEAR_MIN || selectedYear > DOUBAN_YEAR_MAX) {
+            return;
         }
-        
+
+        doubanSelectedYear = selectedYear;
+        doubanPageStart = 0;
         renderRecommend(doubanCurrentTag, doubanPageSize, doubanPageStart);
     };
 }
@@ -411,6 +454,8 @@ function renderRecommend(tag, pageLimit, pageStart) {
     const container = document.getElementById("douban-results");
     if (!container) return;
 
+    const requestSequence = ++doubanRequestSequence;
+
     const loadingOverlayHTML = `
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
             <div class="flex items-center justify-center">
@@ -421,16 +466,35 @@ function renderRecommend(tag, pageLimit, pageStart) {
     `;
 
     container.classList.add("relative");
-    container.insertAdjacentHTML('beforeend', loadingOverlayHTML);
-    
-    const target = `https://movie.douban.com/j/search_subjects?type=${doubanMovieTvCurrentSwitch}&tag=${tag}&sort=recommend&page_limit=${pageLimit}&page_start=${pageStart}`;
+    container.innerHTML = loadingOverlayHTML;
+
+    // new_search_subjects 支持类型、标签和年份组合筛选。
+    // sort=U 使用豆瓣“近期热门”顺序；range=0,10 不限制评分区间。
+    const contentTypeTag = doubanMovieTvCurrentSwitch === 'movie' ? '电影' : '电视剧';
+    const selectedTags = [contentTypeTag];
+    if (tag && tag !== '热门' && tag !== '最新') selectedTags.push(tag);
+
+    const targetUrl = new URL('https://movie.douban.com/j/new_search_subjects');
+    targetUrl.searchParams.set('sort', 'U');
+    targetUrl.searchParams.set('range', '0,10');
+    targetUrl.searchParams.set('tags', selectedTags.join(','));
+    targetUrl.searchParams.set('start', String(pageStart));
+    targetUrl.searchParams.set('year_range', `${doubanSelectedYear},${doubanSelectedYear}`);
+    const target = targetUrl.toString();
     
     // 使用通用请求函数
     fetchDoubanData(target)
         .then(data => {
-            renderDoubanCards(data, container);
+            if (requestSequence !== doubanRequestSequence) return;
+
+            // 兼容新接口的 data 和旧接口的 subjects 两种返回结构。
+            const subjects = Array.isArray(data.data)
+                ? data.data
+                : (Array.isArray(data.subjects) ? data.subjects : []);
+            renderDoubanCards({ subjects: subjects.slice(0, pageLimit) }, container);
         })
         .catch(error => {
+            if (requestSequence !== doubanRequestSequence) return;
             console.error("获取豆瓣数据失败：", error);
             container.innerHTML = `
                 <div class="col-span-full text-center py-8">

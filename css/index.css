@@ -116,19 +116,67 @@
     color: white;
 }
 
-.douban-refresh-button {
-    font-size: 0.875rem;
-    padding: 0.25rem 0.75rem;
-    background: #db2777;
-    color: white;
-    border-radius: 0.5rem;
+.douban-toolbar {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+    width: 100%;
 }
 
-.douban-refresh-button:hover {
-    background: #be185d;
+.douban-toolbar-main {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.douban-year-filter {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    color: #d1d5db;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.douban-year-filter select {
+    display: block;
+    width: 94px;
+    min-width: 94px;
+    height: 36px;
+    padding: 0 2.25rem 0 0.85rem;
+    color: #fff;
+    background-color: #1a1a1a;
+    background-image: linear-gradient(45deg, transparent 50%, #f472b6 50%),
+        linear-gradient(135deg, #f472b6 50%, transparent 50%);
+    background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    border: 1px solid #4b5563;
+    border-radius: 0.5rem;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    color-scheme: dark;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.douban-year-filter select:hover {
+    background-color: #222;
+    border-color: #db2777;
+}
+
+.douban-year-filter select:focus-visible {
+    border-color: #ec4899;
+    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+}
+
+.douban-year-filter option {
+    color: #fff !important;
+    background-color: #1a1a1a !important;
 }
 
 .douban-tags-container {
@@ -161,6 +209,48 @@
     background: #db2777;
     border-color: #db2777;
     color: white;
+}
+
+@media (max-width: 640px) {
+    .douban-toolbar {
+        align-items: center;
+        flex-direction: row;
+        gap: 0.4rem;
+    }
+
+    .douban-toolbar-main {
+        justify-content: flex-start;
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .douban-toolbar-main h2 {
+        margin-right: 0.35rem;
+        font-size: 1rem;
+        white-space: nowrap;
+    }
+
+    .douban-year-filter {
+        flex: 0 0 auto;
+        width: auto;
+    }
+
+    .douban-year-filter select {
+        width: 82px;
+        min-width: 82px;
+        height: 38px;
+        padding-right: 1.7rem;
+        padding-left: 0.55rem;
+        font-size: 0.8rem;
+        background-position: calc(100% - 13px) 16px, calc(100% - 8px) 16px;
+    }
+
+    #douban-movie-toggle,
+    #douban-tv-toggle {
+        padding-right: 0.5rem;
+        padding-left: 0.5rem;
+        font-size: 0.75rem;
+    }
 }
 
 /* 搜索结果样式 */

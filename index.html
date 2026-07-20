@@ -15,7 +15,7 @@
     
     <script src="libs/tailwindcss.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/index.css?v=20260720-3">
 </head>
 <body class="page-bg text-white">
     <!-- 将历史记录按钮移到左上角，并缩小尺寸 -->
@@ -205,7 +205,7 @@
             </h2>
                     <div class="relative h-12 overflow-hidden shadow-lg rounded-lg">
                         <ul id="newsList" class="absolute top-0 left-0 w-full transition-all duration-500">
-                            <li class="h-12 flex items-center px-5 text-white " style="background-color: #708090;"><span style="color: red;margin-right: 5px;">2026</span>新年快乐！</li>
+                            <li class="h-12 flex items-center px-1 text-white " style="background-color: #708090;"><span style="color: red;margin-right: 5px;">※</span>首页仅展示部分电影，请输入电影名搜索</li>
                             <!--<li class="h-12 flex items-center px-5 text-white " style="background-color: #708090;"><span style="color: red;margin-right: 5px;">new</span>夏季天气炎热，注意防暑降温</li>
                             <li class="h-12 flex items-center px-5 text-white " style="background-color: #708090;"><span style="color: rgb(0, 0, 0);margin-right: 5px;">Ver.4</span>睡眠少会使人长期处于应激状态：影响免疫力，增加多种疾病风险</li>-->
                         </ul>
@@ -259,9 +259,9 @@
                 <div class="mx-auto max-w-screen-xl px-2">
                     <!-- 改进标题和标签区域布局 -->
                     <div class="mb-4">
-                        <!-- 标题和刷新按钮一行 -->
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center">
+                        <!-- 标题、类型切换和年份筛选 -->
+                        <div class="douban-toolbar mb-4">
+                            <div class="douban-toolbar-main">
                                 <h2 class="text-xl font-bold text-white mr-4">豆瓣热门</h2>
                                 <!-- 添加电影/电视剧切换开关 -->
                                 <div class="flex items-center bg-[#222] rounded-full p-1">
@@ -269,12 +269,18 @@
                                     <button id="douban-tv-toggle" class="px-3 py-1 text-sm rounded-full text-gray-300 hover:text-white">电视剧</button>
                                 </div>
                             </div>
-                            <button id="douban-refresh" class="text-sm px-3 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded-lg flex items-center gap-1">
-                                <span>换一批</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </button>
+                            <label class="douban-year-filter" for="douban-year-select">
+                                <span class="sr-only">年份</span>
+                                <select id="douban-year-select" aria-label="按年份筛选豆瓣内容">
+                                    <option value="2026" selected>2026年</option>
+                                    <option value="2025">2025年</option>
+                                    <option value="2024">2024年</option>
+                                    <option value="2023">2023年</option>
+                                    <option value="2022">2022年</option>
+                                    <option value="2021">2021年</option>
+                                    <option value="2020">2020年</option>
+                                </select>
+                            </label>
                         </div>
                         <!-- 分类标签独立成行，添加滚动支持以适应移动设备 -->
                         <div class="overflow-x-auto pb-2">
@@ -315,7 +321,7 @@
                         </svg>
                         <span class="gradient-text font-bold">kkskTV</span>
                     </div>
-                    <p class="text-gray-500 text-sm mt-2 text-center md:text-left">© 2025 kkskTV - L.</p>
+                    <p class="text-gray-500 text-sm mt-2 text-center md:text-left">© 2026 kkskTV - L.</p>
                 </div>
                 
                 <div class="text-center md:text-right">
@@ -429,7 +435,7 @@
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/douban.js"></script>
+    <script src="js/douban.js?v=20260720-4"></script>
     <script src="js/password.js"></script>
     <script src="js/search.js"></script>
     <script src="js/app.js"></script>
